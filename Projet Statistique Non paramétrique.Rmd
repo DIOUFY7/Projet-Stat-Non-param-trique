@@ -1,6 +1,6 @@
 ---
-title: "TP noté Statistique Non Parametrique"
-author: "Mamadou DIOUF & Ines COCOSSOU"
+title: "Statistique Non Parametrique"
+author: "Mamadou DIOUF "
 date: "2023-03-05"
 output: html_document
 ---
@@ -233,4 +233,5 @@ par(new=TRUE)
 plot(density(data_w$Survived),col="red")
 #L'utilisation de ce noyau ne semble pas convenir
 ```
+
 
