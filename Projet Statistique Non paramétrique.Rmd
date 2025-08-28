@@ -1,0 +1,236 @@
+---
+title: "TP noté Statistique Non Parametrique"
+author: "Mamadou DIOUF & Ines COCOSSOU"
+date: "2023-03-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+##DATA EXPLORATION
+
+```{r}
+data <- read.csv("dataTitanic.csv")
+
+```
+```{r}
+library("dplyr")
+```
+
+```{r}
+glimpse(data)
+```
+
+```{r}
+summary(data)
+```
+
+```{r}
+library(corrplot)
+```
+
+```{r}
+M<-cor(data.matrix(data))
+print(M)
+
+```
+```{r}
+corrplot(M)
+```
+```{r}
+library("DataExplorer")
+```
+```{r}
+
+library(dplyr)
+library(readr)
+```
+
+```{r}
+library(ggplot2)
+
+library(DataExplorer)
+config <- list(
+  "introduce" = list(),
+  "plot_intro" = list(),
+  "plot_str" = list(
+    "type" = "diagonal",
+    "fontSize" = 35,
+    "width" = 1000,
+    "margin" = list("left" = 350, "right" = 250)
+  ),
+  "plot_missing" = list(),
+  "plot_histogram" = list(),
+  "plot_density" = list(),
+  "plot_qq" = list(sampled_rows = 1000L),
+  "plot_bar" = list(),
+  "plot_correlation" = list("cor_args" = list("use" = "pairwise.complete.obs")),
+  "plot_prcomp" = list(),
+  "plot_boxplot" = list(),
+  "plot_scatterplot" = list(sampled_rows = 1000L)
+)
+
+
+create_report(data,
+        report_title = "EDA Report - Titanic Dataset",
+        y = "Survived",
+        config = config)
+```
+
+```{r}
+plot_missing(data)
+```
+
+
+```{r}
+plot_str(data)
+```
+
+
+
+```{r}
+plot_intro(data)
+```
+
+```{r}
+plot_correlation(data)
+```
+
+```{r }
+plot_bar(data,by="Survived")
+```
+
+```{r}
+data_w <- select(dummify(data),-X,-Ticket,-Cabin,-PassengerId,-Name)
+summary(data_w)
+```
+```{r}
+plot_histogram(data_w)
+```
+```{r}
+plot_correlation(data_w
+                 )
+```
+
+```{r}
+plot_density(data_w)
+```
+```{r}
+plot_prcomp(data_w)
+```
+```{r}
+pca<-prcomp(select(data_w,-Survived,-SibSp,-Embarked_Queenstown),rank. = 4,scale. = TRUE)
+pca
+```
+
+```{r}
+data_pca<-data.frame(pca$x)
+data_pca$Survived<-data_w$Survived
+summary(data_pca)
+```
+## MODELE GLM
+
+```{r}
+model1 <- glm(formula = Survived~.,data=data_w,family = binomial)
+summary(model1)
+```
+Nous réjettons les tests de nulleté des intercept, Pclass, Age, SibSp and Sex_female.
+Le reste de variables ne sont pas signicatifs.
+
+Nous allons donc essayer un nouveau modèle avec les variables Pclass, Parch, Fare and sex_female:
+
+```{r}
+model <- glm(Survived~Pclass+Parch+Fare+Sex_female,data=data_w,family = binomial)
+summary(model)
+```
+Nous constatons que seule la nulleté du variable Fare est acceptée.
+
+```{r}
+model2 <- glm(Survived~Pclass+Parch+Sex_female,data=data_w,family = binomial)
+summary(model2)
+
+```
+
+```{r}
+model4 <- glm(Survived~Pclass+Sex_female,data=data_w,family = binomial)
+summary(model4)
+```
+```{r}
+model5 <- glm(Survived~Sex_female,data=data_w,family = binomial)
+summary(model5)
+```
+```{r}
+anova(model5,model4)
+
+```
+```{r}
+pchisq(79.853, 1, lower.tail = FALSE)
+```
+Le p-value est plus petit que 0.05 alors nous acceptons le modèle 4.
+
+```{r}
+anova(model4,model2)
+```
+
+
+```{r}
+pchisq(2.2816, 1, lower.tail = FALSE)
+```
+Nous réjettons le model2 et prenons le model4 car le \p-value= 0.1309168>0.05}
+
+```{r}
+modelpca <- glm(formula = Survived~.,data=data_pca,family = binomial)
+summary(modelpca)
+```
+Nous avons aussi utilisé la réduction avec PCA (en 4 variables plus le label survival). Et nous constatons que toutes les variables sont significatifs avec un AIC assez 1036.8.
+
+
+## Quelques estimations de densité par des méthodes noyaux
+
+```{r}
+library(KernSmooth)
+#Utilisation du noyau de la loi beta de paramètre (2,2)
+A1<-bkde(data_w$Survived,kernel="epanech")
+plot(A1)
+par(new=TRUE)
+plot(density(data_w$Survived),col="red")
+```
+
+
+
+```{r}
+#Utilisation du noyau de la loi beta de paramètre (3,3)
+A2<-bkde(data_w$Survived,kernel="biweight",bandwidth = 1)
+plot(A2)
+par(new=TRUE)
+plot(density(data_w$Survived),col="red")
+#L'utilisation de ce noyau ne semble pas convenir
+```
+```{r}
+#Utilisation du noyau de la loi beta de paramètre (4,4)
+A3<-bkde(data_w$Survived,kernel="triweight")
+plot(A3)
+par(new=TRUE)
+plot(density(data_w$Survived),col="red")
+#L'utilisation de ce noyau semble convenir
+```
+```{r}
+#Utilisation du noyau de la loi normale
+A4<-bkde(data_w$Survived,kernel="normal")
+plot(A4)
+par(new=TRUE)
+plot(density(data_w$Survived),col="red")
+#L'utilisation de ce noyau semble convenir
+```
+```{r}
+#Utilisation du noyau rectangulaire
+A5<-bkde(data_w$Survived,kernel="box")
+plot(A5)
+par(new=TRUE)
+plot(density(data_w$Survived),col="red")
+#L'utilisation de ce noyau ne semble pas convenir
+```
+
