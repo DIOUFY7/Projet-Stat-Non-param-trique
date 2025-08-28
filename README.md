@@ -1,4 +1,4 @@
-# Projet-Stat-Non-param-trique
+# Stat-Non-parametrique
 Statistique non paramétrique 
 
 Titanic data set 
